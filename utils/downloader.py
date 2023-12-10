@@ -5,7 +5,7 @@ import requests
 # Possible todo: add download and process
 
 def download_file(url):
-  with requests.get(url, stream=True) as r:
+  with requests.get(url) as r:
     return r
 
 
