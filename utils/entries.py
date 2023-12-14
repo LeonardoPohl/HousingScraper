@@ -9,10 +9,12 @@ class Entries:
       ParariusProvider()
     ]
 
-  def get_all_entries(self):
+  def get_all_entries(self, detailed: bool = False):
     self.entries = []
 
     for provider in self.providers:
       self.entries += provider.query_entries()
+      if detailed:
+        provider.get_detailed_results()
 
-    
+  

@@ -8,21 +8,28 @@ from utils import Entry, Address, mt_download
 from .provider import Provider
 
 import json
+from pathlib import Path
 
 class ParariusProvider(Provider):
-  def __init__(self, query: str):
+  def __init__(self, query: str, differentiator: str):
     self.query: str = query
     self.entries: list(Entry) = []
     self.base_url = "https://www.pararius.com"
+    self.differentiator = differentiator
   
   def query_entries(self):
     response = requests.get(f"{self.base_url}{self.query}")
     soup = BeautifulSoup(response.content, 'html.parser')
 
     self.entries = [] 
-    page_count = len(soup.find('ul', class_="pagination__list").find_all("li"))
-    page_urls = [f"{self.base_url}{self.query}/page-{i}" for i in range(1, page_count)]
-    page_results = mt_download(page_urls)
+    page_list = soup.find('ul', class_="pagination__list")
+    
+    if not page_list:
+      page_results = [response]
+    else:
+      page_count = len(page_list.find_all("li"))
+      page_urls = [f"{self.base_url}{self.query}/page-{i}" for i in range(1, page_count)]
+      page_results = mt_download(page_urls)
 
     for response in page_results:
       soup = BeautifulSoup(response.content, 'html.parser')
@@ -51,24 +58,41 @@ class ParariusProvider(Provider):
       furnished = furnished)
 
   def get_detailed_results(self):
-    responses = mt_download([entry.link for entry in self.entries])
-    for i, response in enumerate(responses):
-      soup = BeautifulSoup(response.content, 'html.parser')
-      contents = json.loads(soup.find("script", type="application/ld+json").get_text().strip())
+    if len(self.entries) == 0:
+      return
+
+    responses = mt_download([entry.link for entry in self.entries], self.process_entry)
+
+    # with tqdm(total=len(responses)) as pbar:
+    #   for i, response in tqdm(enumerate(responses)):
+    #     self.process_entry(i, response)
+    #     pbar.update(1)
+
+
+  def process_entry(self, i, response):
+    soup = BeautifulSoup(response.content, 'html.parser')
+      
+    Path(f"responses/success/{self.differentiator}").mkdir(parents=True, exist_ok=True)
+    with open(f"responses/success/{self.differentiator}/{self.entries[i].title}.html", "w") as f:
+      f.write(str(soup))
+
+    contents = soup.find("script", type="application/ld+json")
+    if contents:
+      contents = json.loads(contents.get_text().strip())
       self.entries[i].address = Address.from_pararius_dict(contents["address"])
 
-      self.entries[i].description = BeautifulSoup(soup.find("div", class_="listing-detail-description__additional listing-detail-description__additional--collapsed").get_text().strip()).get_text()
+    self.entries[i].description = BeautifulSoup(soup.find("div", class_="listing-detail-description__additional listing-detail-description__additional--collapsed").get_text().strip(), 'html.parser').get_text()
 
-      rented = soup.find("span", class_="listing-label listing-label--rented-under-reservation")
+    rented = soup.find("span", class_="listing-label listing-label--rented-under-reservation")
 
-      # Ugly code
+    # Ugly code
+    if rented:
+      rented = rented.get_text().strip()
+    else:
+      rented = soup.find("span", class_="listing-label listing-label--under-option")
       if rented:
         rented = rented.get_text().strip()
-      else:
-        rented = soup.find("span", class_="listing-label listing-label--under-option")
-        if rented:
-          rented = rented.get_text().strip()
 
-      self.entries[i].rented = rented
+    self.entries[i].rented = rented
 
     
