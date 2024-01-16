@@ -19,3 +19,30 @@ class Address:
     )
 
     return instance
+
+  def __repr__(self):
+    return repr(f'''\
+      Street: {self.street}
+      District: {self.district}
+      Postal Code: {self.postal_code}
+      City: {self.city}
+      Address Type: {self.addr_type}
+      ''')
+
+  def __str__(self):
+    return f'''\
+      Street: {self.street}
+      District: {self.district}
+      Postal Code: {self.postal_code}
+      City: {self.city}
+      Address Type: {self.addr_type}
+      '''
+
+  def to_string(addr_dict):
+    return f'''\
+      Street: {addr_dict['street']}
+      District: {addr_dict['district']}
+      Postal Code: {addr_dict['postal_code']}
+      City: {addr_dict['city']}
+      Address Type: {addr_dict['addr_type']}
+      '''

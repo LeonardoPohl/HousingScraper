@@ -63,18 +63,14 @@ class ParariusProvider(Provider):
 
     responses = mt_download([entry.link for entry in self.entries], self.process_entry)
 
-    # with tqdm(total=len(responses)) as pbar:
-    #   for i, response in tqdm(enumerate(responses)):
-    #     self.process_entry(i, response)
-    #     pbar.update(1)
-
-
   def process_entry(self, i, response):
     soup = BeautifulSoup(response.content, 'html.parser')
       
-    Path(f"responses/success/{self.differentiator}").mkdir(parents=True, exist_ok=True)
-    with open(f"responses/success/{self.differentiator}/{self.entries[i].title}.html", "w") as f:
-      f.write(str(soup))
+    file_path = Path(f"responses/success/{self.differentiator}")
+    if not file_path.exists():
+      file_path.mkdir(parents=True, exist_ok=True)
+      with open(f"responses/success/{self.differentiator}/{self.entries[i].title}.html", "w") as f:
+        f.write(str(soup))
 
     contents = soup.find("script", type="application/ld+json")
     if contents:
